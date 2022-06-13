@@ -10,11 +10,11 @@
         end
     end
 
-    # for group_order in 2:30
-    #     for S in SmallPermGroups[group_order]
-    #         STree_t = CGT.SchreierTree{Int, eltype(S), typeof(^)}
-    #         sc_tree = CGT.schreier_sims(STree_t, S)
-    #         @test order(Int, sc_tree) == group_order
-    #     end
-    # end
+    for group_order in 2:30
+        for S in SmallPermGroups[group_order]
+            STree_t = CGT.SchreierTree{Int, eltype(S), typeof(^)}
+            sc_tree = CGT.schreier_sims(STree_t, S)
+            @test order(Int, sc_tree) == group_order
+        end
+    end
 end

@@ -117,4 +117,61 @@ function Base.push!(t::Transversal, y_g::Pair{T, <:GroupElement}) where T
 end
 Base.setindex!(t::Transversal, g::GroupElement, pt) = push!(t, pt=>g)
 
+struct SchreierTree{T, GEl, Ac} <: AbstractTransversal{T, GEl}
+    points::Vector{T}
+    representatives::Dict{T, GEl}
+    action::Ac
 
+    function SchreierTree{T, GEl, Ac}(
+        point,
+        S::AbstractVector{<:GroupElement},
+        action = ^
+    ) where {T, GEl, Ac}
+        @assert !isempty(S) "The generating set must be non-empty, got $S"
+        Sch = new{T, GEl, Ac}(T[point], Dict(point => one(first(S))), action)
+        for pt in Sch
+            for s in S
+                y = action(pt, s)
+                y ∈ Sch && continue
+                push!(Sch, y=>s)
+            end
+        end
+        return Sch
+    end
+end
+
+SchreierTree(point::T, S::AbstractVector{GEl}, action = ^) where {T, GEl<:GroupElement}=
+    SchreierTree{T,GEl,typeof(action)}(point, S, action)
+
+Base.iterate(t::SchreierTree) = iterate(t.points)
+Base.iterate(t::SchreierTree, state) = iterate(t.points, state)
+Base.length(t::SchreierTree) = length(t.points)
+Base.in(x, t::SchreierTree) = haskey(t.representatives, x)
+Base.first(t::SchreierTree) = first(t.points)
+action(t::SchreierTree) = t.action
+
+function Base.getindex(t::SchreierTree, pt)
+    pt ∉ t && throw(KeyError(pt))
+
+    e = one(t.representatives[pt])
+    g = e
+    point = pt
+
+    while (s = t.representatives[point]) != e
+        point = action(t)(point, inv(s))
+        g = s*g
+    end
+
+    return g
+end
+
+Base.setindex!(t::SchreierTree, s::GroupElement, pt) = push!(t, pt=>s)
+
+function Base.push!(t::SchreierTree, y_g::Pair{T, <:GroupElement}) where T
+    y, s = y_g
+    if y ∉ t
+        push!(t.points, y)
+    end
+    t.representatives[y] = s
+    return t
+end
